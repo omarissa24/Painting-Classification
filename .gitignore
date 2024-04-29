@@ -4,3 +4,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# files that end with _output.txt
+*.txt
