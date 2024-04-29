@@ -81,12 +81,12 @@ def get_max_satisfaction_multi_process(frameglass_combos):
 
     # Split the remaining frameglasses into 4 equal parts
     n = len(rem_fg)
-    part_size = n // 7
+    part_size = n // 8
     parts = [rem_fg[i:i+part_size] for i in range(0, n, part_size)]
 
     # Create a pool of 4 processes
     if __name__ == '__main__':
-        pool = multiprocessing.Pool(7)
+        pool = multiprocessing.Pool(4)
         # Run the get_max_satisfaction function for each part
         results = pool.map(get_max_satisfaction_greedy, parts)
         pool.close()
