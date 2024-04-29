@@ -34,11 +34,10 @@ def process_paintings(file_path):
     return frameglasses
 
 # this function returns all possible combinations of frameglasses in the form of a list of lists of frameglasses
-def get_frameglasses_combinations(frameglasses):
-    frameglass_combos = list(itertools.permutations(frameglasses))
+# def get_frameglasses_combinations(frameglasses):
+#     frameglass_combos = list(itertools.permutations(frameglasses, 2))
     
-    return frameglass_combos
-    
+#     return frameglass_combos
 
 def get_local_robotic_satisfaction(frameglass1, frameglass2):
     common_tags = len(set(frameglass1['tags']).intersection(set(frameglass2['tags'])))
@@ -47,27 +46,56 @@ def get_local_robotic_satisfaction(frameglass1, frameglass2):
     
     return min(common_tags, tags_in_frameglass1, tags_in_frameglass2)
 
-def get_global_robotic_satisfaction(frameglass_combos):
-    global_satisfaction = 0
+# def get_global_robotic_satisfaction(frameglass_combos):
+#     global_satisfaction = 0
     
-    for i in range(len(frameglass_combos)):
-        for j in range(i+1, len(frameglass_combos)):
-            global_satisfaction += get_local_robotic_satisfaction(frameglass_combos[i], frameglass_combos[j])
+#     for i in range(len(frameglass_combos)):
+#         for j in range(i+1, len(frameglass_combos)):
+#             global_satisfaction += get_local_robotic_satisfaction(frameglass_combos[i], frameglass_combos[j])
     
-    return global_satisfaction
+#     return global_satisfaction
+
+# def get_max_satisfaction(frameglass_combos):
+#     max_satisfaction = 0
+#     max_satisfaction_combo = None
+    
+#     for frameglass_combo in frameglass_combos:
+#         satisfaction = get_global_robotic_satisfaction(frameglass_combo)
+#         max_satisfaction = max(max_satisfaction, satisfaction)
+
+#         if satisfaction == max_satisfaction:
+#             max_satisfaction_combo = frameglass_combo
+    
+#     return max_satisfaction, max_satisfaction_combo
 
 def get_max_satisfaction(frameglass_combos):
-    max_satisfaction = 0
-    max_satisfaction_combo = None
+    if not frameglass_combos:
+        return 0, []
     
-    for frameglass_combo in frameglass_combos:
-        satisfaction = get_global_robotic_satisfaction(frameglass_combo)
-        max_satisfaction = max(max_satisfaction, satisfaction)
+    curr_fg = frameglass_combos[0]
+    res = [curr_fg]
+    rem_fg = frameglass_combos[1:]
+    total_satisfaction = 0
 
-        if satisfaction == max_satisfaction:
-            max_satisfaction_combo = frameglass_combo
-    
-    return max_satisfaction, max_satisfaction_combo
+    while rem_fg:
+        max_satisfaction = 0
+        max_fg = None
+
+        for fg in rem_fg:
+            satisfaction = get_local_robotic_satisfaction(curr_fg, fg)
+            if satisfaction >= max_satisfaction:
+                max_satisfaction = satisfaction
+                max_fg = fg
+
+        if max_fg:
+            res.append(max_fg)
+            rem_fg.remove(max_fg)
+            total_satisfaction += max_satisfaction
+            curr_fg = max_fg
+        else:
+            break
+
+    return total_satisfaction, res
 
 def write_output_file(output_file_path, best_combo):
     with open(output_file_path, 'w') as file:
@@ -80,9 +108,9 @@ def write_output_file(output_file_path, best_combo):
 
 def main(input_file_path):
     input_file_path = 'Data/' + input_file_path
-    res = process_paintings(input_file_path)
+    combos = process_paintings(input_file_path)
 
-    combos = get_frameglasses_combinations(res)
+    # combos = get_frameglasses_combinations(res)
 
     max_satisfaction, max_satisfaction_combo = get_max_satisfaction(combos)
 
@@ -96,7 +124,7 @@ def main(input_file_path):
 
 start = time.time()
 
-res = main('0_example.txt')
+res = main('10_computable_moments.txt')
 print(res)
 
 print('Time taken:', time.time()-start)

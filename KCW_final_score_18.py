@@ -8,8 +8,6 @@ def KCW_final_score(input_file_path):
 import os
 total = 0
 for file in os.listdir('Data'):
-    # total += KCW_final_score(file)
-    print(file)
-    total += 1
+    total += KCW_final_score(file)
 
 print('Total score:', total)
