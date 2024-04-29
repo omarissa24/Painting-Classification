@@ -62,12 +62,12 @@ def get_max_satisfaction(frameglass_combos):
     
     for frameglass_combo in frameglass_combos:
         satisfaction = get_global_robotic_satisfaction(frameglass_combo)
+        max_satisfaction = max(max_satisfaction, satisfaction)
 
-        if satisfaction >= max_satisfaction:
+        if satisfaction == max_satisfaction:
             max_satisfaction_combo = frameglass_combo
-            max_satisfaction = satisfaction
     
-    return max_satisfaction_combo
+    return max_satisfaction, max_satisfaction_combo
 
 def write_output_file(output_file_path, best_combo):
     with open(output_file_path, 'w') as file:
@@ -84,16 +84,19 @@ def main(input_file_path):
 
     combos = get_frameglasses_combinations(res)
 
-    max_satisfaction_combo = get_max_satisfaction(combos)
+    max_satisfaction, max_satisfaction_combo = get_max_satisfaction(combos)
 
     output_file_path = input_file_path.split('/')[-1].replace('.txt', '_output.txt')
 
     write_output_file(output_file_path, max_satisfaction_combo)
 
+    return max_satisfaction
+
 # --------------------------------------------
 
 start = time.time()
 
-main('0_example.txt')
+res = main('0_example.txt')
+print(res)
 
 print('Time taken:', time.time()-start)
