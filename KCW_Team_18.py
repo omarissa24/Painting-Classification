@@ -1,5 +1,5 @@
-paintings_file_path = '0_example.txt'
 import time
+import itertools
 
 def process_paintings(file_path):
     with open(file_path, 'r') as file:
@@ -33,15 +33,12 @@ def process_paintings(file_path):
     
     return frameglasses
 
+# this function returns all possible combinations of frameglasses in the form of a list of lists of frameglasses
 def get_frameglasses_combinations(frameglasses):
-    frameglasses_combinations = []
+    frameglass_combos = list(itertools.permutations(frameglasses))
     
-    for i in range(len(frameglasses)):
-        for j in range(i+1, len(frameglasses)):
-            frameglasses_combinations.append({'frameglasses': [frameglasses[i], frameglasses[j]], 'tags': set(frameglasses[i]['tags']).union(set(frameglasses[j]['tags']))})
-
-    return frameglasses_combinations
-
+    return frameglass_combos
+    
 
 def get_local_robotic_satisfaction(frameglass1, frameglass2):
     common_tags = len(set(frameglass1['tags']).intersection(set(frameglass2['tags'])))
@@ -50,36 +47,53 @@ def get_local_robotic_satisfaction(frameglass1, frameglass2):
     
     return min(common_tags, tags_in_frameglass1, tags_in_frameglass2)
 
-def get_combo_with_max_satisfaction(frameglasses_combinations):
+def get_global_robotic_satisfaction(frameglass_combos):
+    global_satisfaction = 0
+    
+    for i in range(len(frameglass_combos)):
+        for j in range(i+1, len(frameglass_combos)):
+            global_satisfaction += get_local_robotic_satisfaction(frameglass_combos[i], frameglass_combos[j])
+    
+    return global_satisfaction
+
+def get_max_satisfaction(frameglass_combos):
     max_satisfaction = 0
-    best_combo = None
+    max_satisfaction_combo = None
     
-    for combo in frameglasses_combinations:
-        satisfaction_score = get_local_robotic_satisfaction(combo['frameglasses'][0], combo['frameglasses'][1])
-        max_satisfaction = max(max_satisfaction, satisfaction_score)
-        if max_satisfaction == satisfaction_score:
-            best_combo = combo['frameglasses']
+    for frameglass_combo in frameglass_combos:
+        satisfaction = get_global_robotic_satisfaction(frameglass_combo)
+
+        if satisfaction >= max_satisfaction:
+            max_satisfaction_combo = frameglass_combo
+            max_satisfaction = satisfaction
     
-    return best_combo
+    return max_satisfaction_combo
 
-time1 = time.time()
+def write_output_file(output_file_path, best_combo):
+    with open(output_file_path, 'w') as file:
+        file.write(str(len(best_combo)) + '\n')
+        for frameglass in best_combo:
+            if frameglass['type'] == 'L':
+                file.write(str(frameglass['paintings'][0]) + '\n')
+            elif frameglass['type'] == 'P':
+                file.write(str(frameglass['paintings'][0]) + ' ' + str(frameglass['paintings'][1]) + '\n')
 
-res = process_paintings(paintings_file_path)
+def main(input_file_path):
+    input_file_path = 'Data/' + input_file_path
+    res = process_paintings(input_file_path)
 
-combos = get_frameglasses_combinations(res)
+    combos = get_frameglasses_combinations(res)
 
-best_combo = get_combo_with_max_satisfaction(combos)
+    max_satisfaction_combo = get_max_satisfaction(combos)
 
-output_file_path = paintings_file_path.replace('.txt', '_output.txt')
+    output_file_path = input_file_path.split('/')[-1].replace('.txt', '_output.txt')
 
-with open(output_file_path, 'w') as file:
-    file.write(str(len(best_combo)) + '\n')
-    
-    for combo in best_combo:
-        if combo['type'] == 'L':
-            file.write(str(combo['paintings'][0]) + '\n')
-        elif combo['type'] == 'P':
-            file.write(str(combo['paintings'][0]) + ' ' + str(combo['paintings'][1]) + '\n')
-time2 = time.time()
+    write_output_file(output_file_path, max_satisfaction_combo)
 
-print(time2 - time1)
+# --------------------------------------------
+
+start = time.time()
+
+main('0_example.txt')
+
+print('Time taken:', time.time()-start)
