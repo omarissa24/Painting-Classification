@@ -1,43 +1,33 @@
 import time
-import itertools
+import heapq
+import multiprocessing
 
 def process_paintings(file_path):
     with open(file_path, 'r') as file:
-        n = int(file.readline().strip())
+        n = int(next(file).strip())
         
-        landscapes = []
-        portraits = []
+        frameglasses = []
+        portrait_buffer = None
         
         for i in range(n):
-            line = file.readline().strip().split()
+            line = next(file).strip().split()
             painting_type = line[0]
-            tag_count = int(line[1])
-            tags = line[2:2+tag_count]
+            tags = set(line[2:int(line[1])+2])
             
             if painting_type == 'L':
-                landscapes.append((i, set(tags)))
+                frameglasses.append({'type': 'L', 'paintings': [i], 'tags': list(tags)})
             elif painting_type == 'P':
-                portraits.append((i, set(tags)))
-    
-    frameglasses = []
-    
-    for landscape in landscapes:
-        frameglasses.append({'type': 'L', 'paintings': [landscape[0]], 'tags': list(landscape[1])})
-    
-    for i in range(0, len(portraits), 2):
-        if i+1 < len(portraits):
-            combined_tags = portraits[i][1].union(portraits[i+1][1])
-            frameglasses.append({'type': 'P', 'paintings': [portraits[i][0], portraits[i+1][0]], 'tags': list(combined_tags)})
-        else:
-            frameglasses.append({'type': 'P', 'paintings': [portraits[i][0]], 'tags': list(portraits[i][1])})
+                if portrait_buffer:
+                    combined_tags = portrait_buffer['tags'].union(tags)
+                    frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index'], i], 'tags': list(combined_tags)})
+                    portrait_buffer = None
+                else:
+                    portrait_buffer = {'tags': tags, 'index': i}
+        
+        if portrait_buffer:
+            frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index']], 'tags': list(portrait_buffer['tags'])})
     
     return frameglasses
-
-# this function returns all possible combinations of frameglasses in the form of a list of lists of frameglasses
-# def get_frameglasses_combinations(frameglasses):
-#     frameglass_combos = list(itertools.permutations(frameglasses, 2))
-    
-#     return frameglass_combos
 
 def get_local_robotic_satisfaction(frameglass1, frameglass2):
     common_tags = len(set(frameglass1['tags']).intersection(set(frameglass2['tags'])))
@@ -46,29 +36,10 @@ def get_local_robotic_satisfaction(frameglass1, frameglass2):
     
     return min(common_tags, tags_in_frameglass1, tags_in_frameglass2)
 
-# def get_global_robotic_satisfaction(frameglass_combos):
-#     global_satisfaction = 0
-    
-#     for i in range(len(frameglass_combos)):
-#         for j in range(i+1, len(frameglass_combos)):
-#             global_satisfaction += get_local_robotic_satisfaction(frameglass_combos[i], frameglass_combos[j])
-    
-#     return global_satisfaction
-
-# def get_max_satisfaction(frameglass_combos):
-#     max_satisfaction = 0
-#     max_satisfaction_combo = None
-    
-#     for frameglass_combo in frameglass_combos:
-#         satisfaction = get_global_robotic_satisfaction(frameglass_combo)
-#         max_satisfaction = max(max_satisfaction, satisfaction)
-
-#         if satisfaction == max_satisfaction:
-#             max_satisfaction_combo = frameglass_combo
-    
-#     return max_satisfaction, max_satisfaction_combo
-
+# this function runs in O(n^2) time
 def get_max_satisfaction(frameglass_combos):
+    frameglass_combos.sort(key=lambda x: len(x['tags']), reverse=True)
+
     if not frameglass_combos:
         return 0, []
     
@@ -97,6 +68,80 @@ def get_max_satisfaction(frameglass_combos):
 
     return total_satisfaction, res
 
+def get_max_satisfaction_multi_process(frameglass_combos):
+    frameglass_combos.sort(key=lambda x: len(x['tags']), reverse=True)
+
+    if not frameglass_combos:
+        return 0, []
+    
+    curr_fg = frameglass_combos[0]
+    res = [curr_fg]
+    rem_fg = frameglass_combos[1:]
+    total_satisfaction = 0
+
+    # Split the remaining frameglasses into 4 equal parts
+    n = len(rem_fg)
+    part_size = n // 7
+    parts = [rem_fg[i:i+part_size] for i in range(0, n, part_size)]
+
+    # Create a pool of 4 processes
+    if __name__ == '__main__':
+        pool = multiprocessing.Pool(7)
+        # Run the get_max_satisfaction function for each part
+        results = pool.map(get_max_satisfaction_greedy, parts)
+        pool.close()
+        pool.join()
+
+        for satisfaction, fg_list in results:
+            total_satisfaction += satisfaction
+            res.extend(fg_list)
+
+    return total_satisfaction, res
+
+from heapq import heappush, heappop
+
+def get_max_satisfaction_greedy(frameglass_combos):
+    if not frameglass_combos:
+        return 0, []
+
+    # Sort frameglass_combos based on the length of 'tags'
+    frameglass_combos.sort(key=lambda x: len(x['tags']), reverse=True)
+
+    # Initialize variables
+    curr_fg = frameglass_combos[0]
+    res = [curr_fg]
+    total_satisfaction = 0
+    max_heap = []
+
+    # Create a list of available items initially set to True for all
+    available = [True] * len(frameglass_combos)
+    available[0] = False  # Mark the first as used
+
+    # Pre-fill the heap
+    for i in range(1, len(frameglass_combos)):
+        satisfaction = -get_local_robotic_satisfaction(curr_fg, frameglass_combos[i])  # Use negative for max heap
+        heappush(max_heap, (satisfaction, i))
+
+    while max_heap:
+        max_satisfaction, idx = heappop(max_heap)
+        max_satisfaction = -max_satisfaction  # Convert back to positive
+
+        if available[idx]:
+            max_fg = frameglass_combos[idx]
+            res.append(max_fg)
+            available[idx] = False  # Mark as used
+            total_satisfaction += max_satisfaction
+            curr_fg = max_fg
+
+            # Update heap with the new curr_fg
+            for i in range(len(frameglass_combos)):
+                if available[i]:
+                    satisfaction = -get_local_robotic_satisfaction(curr_fg, frameglass_combos[i])
+                    heappush(max_heap, (satisfaction, i))
+
+    return total_satisfaction, res
+
+
 def write_output_file(output_file_path, best_combo):
     with open(output_file_path, 'w') as file:
         file.write(str(len(best_combo)) + '\n')
@@ -110,9 +155,7 @@ def main(input_file_path):
     input_file_path = 'Data/' + input_file_path
     combos = process_paintings(input_file_path)
 
-    # combos = get_frameglasses_combinations(res)
-
-    max_satisfaction, max_satisfaction_combo = get_max_satisfaction(combos)
+    max_satisfaction, max_satisfaction_combo = get_max_satisfaction_multi_process(combos)
 
     output_file_path = input_file_path.split('/')[-1].replace('.txt', '_output.txt')
 
@@ -122,9 +165,5 @@ def main(input_file_path):
 
 # --------------------------------------------
 
-start = time.time()
-
-res = main('10_computable_moments.txt')
+res = main('110_oily_portraits.txt')
 print(res)
-
-print('Time taken:', time.time()-start)
