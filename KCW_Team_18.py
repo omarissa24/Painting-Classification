@@ -38,7 +38,7 @@ def get_local_robotic_satisfaction(frameglass1, frameglass2):
 
 # this function runs in O(n^2) time
 def get_max_satisfaction(frameglass_combos):
-    frameglass_combos.sort(key=lambda x: len(x['tags']), reverse=True)
+    # frameglass_combos.sort(key=lambda x: len(x['tags']), reverse=True)
 
     if not frameglass_combos:
         return 0, []
@@ -81,14 +81,14 @@ def get_max_satisfaction_multi_process(frameglass_combos):
 
     # Split the remaining frameglasses into 4 equal parts
     n = len(rem_fg)
-    part_size = n // 8
+    part_size = n // 2
     parts = [rem_fg[i:i+part_size] for i in range(0, n, part_size)]
 
     # Create a pool of 4 processes
     if __name__ == '__main__':
-        pool = multiprocessing.Pool(4)
+        pool = multiprocessing.Pool()
         # Run the get_max_satisfaction function for each part
-        results = pool.map(get_max_satisfaction_greedy, parts)
+        results = pool.map(get_max_satisfaction, parts)
         pool.close()
         pool.join()
 
@@ -165,5 +165,10 @@ def main(input_file_path):
 
 # --------------------------------------------
 
-res = main('110_oily_portraits.txt')
-print(res)
+total = 0
+total += main('110_oily_portraits.txt')
+print('Score:', total)
+total += main('1_binary_landscapes.txt')
+print('Score:', total)
+total += main('11_randomizing_paintings.txt')
+print('Total score:', total)

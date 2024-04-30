@@ -5,9 +5,11 @@ def KCW_final_score(input_file_path):
     print(input_file_path, res)
     return res
 
+import os 
+
 total = 0
-total += KCW_final_score('110_oily_portraits.txt')
-total += KCW_final_score('11_randomizing_paintings.txt')
-total += KCW_final_score('1_binary_landscapes.txt')
+for file in os.listdir('Data'):
+    if file.endswith('.txt'):
+        total += KCW_final_score(file)
 
 print('Total score:', total)
