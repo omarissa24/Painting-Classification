@@ -12,8 +12,6 @@ class Scorer():
         self.score = 0
         self.debug = False
 
-        input_file = 'Data/' + input_file
-
         f = open(input_file, "r")
         for count, i in enumerate(f.readlines()[1:]):
             self.frameglasses[count] = i.split()

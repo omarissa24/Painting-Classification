@@ -7,6 +7,8 @@ from itertools import combinations, product
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 
+from score_checker import Scorer
+
 def process_paintings(file_path, is_binary=False):
     # a dictionary that stores the set of tags for each index of landscpe paintings
     landscape_tags = {}
@@ -279,9 +281,12 @@ def main(input_file_path, is_binary=False, is_oily=False, is_random=False, is_co
         # print("First batch done:", max_satisfaction)
         max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1500)
 
-    # output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
-    # write_output_file(output_file_path, max_satisfaction_combo)
+    output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
+    write_output_file(output_file_path, max_satisfaction_combo)
 
-    return max_satisfaction
+    scorer = Scorer(input_file_path, output_file_path)
+    scorer.exhibition_walk()
 
-# print(main('1_binary_landscapes.txt', is_binary=True))
+    return scorer.score
+
+# print(main('10_computable_moments.txt', is_computable=True))
