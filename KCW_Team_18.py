@@ -45,8 +45,9 @@ def process_paintings(file_path, is_binary=False):
         if portrait_buffer:
             frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index']], 'tags': list(portrait_buffer['tags'])})
 
-    if not is_binary:
-        frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+    # if not is_binary:
+    #     frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+        # frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
     return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
 
 # def process_paintings(file_path):
@@ -84,6 +85,30 @@ def process_paintings(file_path, is_binary=False):
 #     # frameglasses = merge_portraits(frameglasses)
 #     frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
 #     return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
+
+def merge_portraits(portrait_tags):
+    portrait_tags = dict(sorted(portrait_tags.items(), key=lambda x: len(x[1]), reverse=True))
+    merged_portraits = []
+    # we want to pair each portrait with the one that has the least common tags
+    for i, portrait in enumerate(portrait_tags):
+        min_common_tags = float('inf')
+        min_common_portrait = None
+        for j, other_portrait in enumerate(portrait_tags):
+            if i != j:
+                common_tags = len(portrait_tags[portrait].intersection(portrait_tags[other_portrait]))
+                if common_tags < min_common_tags:
+                    min_common_tags = common_tags
+                    min_common_portrait = other_portrait
+        
+        tags = portrait_tags[portrait].union(portrait_tags[min_common_portrait])
+        merged_portraits.append({
+            'type': 'P',
+            'paintings': [portrait, min_common_portrait],
+            'tags': list(tags)
+        })
+
+    return merged_portraits
+
 
 def get_freq_of_tags_with_index_of_frameglass(frameglass_combos):
     tags_fg = {}
@@ -167,34 +192,45 @@ def get_max_satisfaction_batch(frameglass_combos, chunk_size=100):
 
     return total_satisfaction, res
 
-def get_best_combo_binary(frameglasses, tag_frameglasses):
+def best_combo_binary(frameglasses, tag_frameglasses):
     best_combo = []
+    fg_copy = frameglasses.copy()
+    frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
     max_satisfaction = 0
     visited = set()
-    for fg in frameglasses:
-        neighbors = []
-        if fg['paintings'][0] not in visited:
-            visited.add(fg['paintings'][0])
-            for tag in fg['tags']:
-                neighbors.extend([index for index in tag_frameglasses[tag] if index not in visited])
-                
-            for neighbor in neighbors:
-                if neighbor not in visited:
-                    nb_common_tags = len(set(fg['tags']).intersection(set(frameglasses[neighbor]['tags'])))
-                    nb_tags = len(frameglasses[neighbor]['tags'])
-                    if nb_tags > 2 * nb_common_tags:
-                        max_satisfaction += get_local_robotic_satisfaction(fg, frameglasses[neighbor])
-                        best_combo.append(fg)
-                        best_combo.append(frameglasses[neighbor])
-                        visited.add(neighbor)
-                        break
+    best_combo.append(frameglasses[0])
+    visited.add(frameglasses[0]['paintings'][0])
+    frameglasses.pop(0)
 
-    for fg in frameglasses:
-        if fg['paintings'][0] not in visited:
-            best_combo.append(fg)
-            visited.add(fg['paintings'][0])
+    while frameglasses:
+        curr = best_combo[-1]
+        neighbors = []
+        for tag in curr['tags']:
+            neighbors.extend([index for index in tag_frameglasses[tag] if index not in visited])
+
+        for neighbor in neighbors:
+            if neighbor not in visited:
+                nb_common_tags = len(set(curr['tags']).intersection(set(fg_copy[neighbor]['tags'])))
+                nb_tags = len(fg_copy[neighbor]['tags'])
+                if nb_tags > 2 * nb_common_tags:
+                    best_combo.append(fg_copy[neighbor])
+                    visited.add(neighbor)
+                    frameglasses.remove(fg_copy[neighbor])
+                    break
+
+        if not neighbors:
+            best_combo.append(frameglasses[-1])
+            visited.add(frameglasses[-1]['paintings'][0])
+            frameglasses.pop(-1)
+            curr = best_combo[-1]
+
+    
+    for i in range(len(best_combo) - 1):
+        max_satisfaction += get_local_robotic_satisfaction(best_combo[i], best_combo[i+1])
 
     return max_satisfaction, best_combo
+            
+            
 
 def write_output_file(output_file_path, best_combo):
     with open(output_file_path, 'w') as file:
@@ -328,12 +364,12 @@ def main(input_file_path, is_binary=False):
     paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path, is_binary)
 
     if is_binary:
-        max_satisfaction, max_satisfaction_combo = get_best_combo_binary(paintings, tag_frameglasses)
+        max_satisfaction, max_satisfaction_combo = best_combo_binary(paintings, tag_frameglasses)
 
         output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
         write_output_file(output_file_path, max_satisfaction_combo)
 
-        # print("Time taken:", (time.time() - start) / 60)
+        print("Time taken:", (time.time() - start) / 60)
 
         return max_satisfaction
     
