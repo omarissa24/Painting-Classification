@@ -110,6 +110,17 @@ def merge_portraits(frameglasses):
 
     return frameglasses
 
+def get_freq_of_tags_with_index_of_frameglass(frameglass_combos):
+    tags_fg = {}
+    for i, fg in enumerate(frameglass_combos):
+        if len(fg['tags']) not in tags_fg:
+            tags_fg[len(fg['tags'])] = 0
+        tags_fg[len(fg['tags'])] += 1
+
+    # sort the values of the dictionary in descending order
+    tags_fg = dict(sorted(tags_fg.items(), key=lambda x: x[1], reverse=True))
+    return tags_fg
+
 def get_local_robotic_satisfaction(frameglass1, frameglass2):
     common_tags = len(set(frameglass1['tags']).intersection(set(frameglass2['tags'])))
     tags_in_frameglass1 = len(set(frameglass1['tags']).difference(set(frameglass2['tags'])))
@@ -281,10 +292,7 @@ def run_genetic_algorithm(toolbox, threshold=0.01, ngen=20, patience=5):
 #     print("Optimal Batch Size Found:", optimal_batch_size)
 
 def compute_intersection_size(i, j, portrait_tags):
-    common_tags = len(portrait_tags[i].intersection(portrait_tags[j]))
-    tags_in_i = len(portrait_tags[i]) - common_tags
-    tags_in_j = len(portrait_tags[j]) - common_tags
-    return min(common_tags, tags_in_i, tags_in_j)
+    return len(portrait_tags[i].intersection(portrait_tags[j]))
     
 def hungarian_algorithm(portait_tags):
     keys = list(portait_tags.keys())
@@ -357,6 +365,7 @@ if __name__ == '__main__':
     start = time.time()
     input_file_path = '1_binary_landscapes.txt'
     paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path, True)
+    # print(get_freq_of_tags_with_index_of_frameglass(paintings)) 
     max_satisfaction, best_combo = get_best_combo_binary(paintings, tag_frameglasses)
     # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 275)
     # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 600)
