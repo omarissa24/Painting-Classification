@@ -7,50 +7,7 @@ from itertools import combinations, product
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 
-def process_paintings(file_path, is_binary=False):
-    # a dictionary that stores the set of tags for each index of landscpe paintings
-    landscape_tags = {}
-    # a dictionary that stores the set of tags for each index of portrait paintings
-    portrait_tags = {}
-    # a dictionary that stores the set of frameglasses that contain a particular tag
-    tag_frameglasses = {}
-    with open(file_path, 'r') as file:
-        n = int(next(file).strip())
-        
-        frameglasses = []
-        portrait_buffer = None
-        
-        for i in range(n):
-            line = next(file).strip().split()
-            painting_type = line[0]
-            tags = set(line[2:int(line[1])+2])
-            
-            if painting_type == 'L':
-                landscape_tags[i] = tags
-                frameglasses.append({'type': 'L', 'paintings': [i], 'tags': list(tags)})
-            elif painting_type == 'P':
-                portrait_tags[i] = tags
-                if portrait_buffer:
-                    combined_tags = portrait_buffer['tags'].union(tags)
-                    frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index'], i], 'tags': list(combined_tags)})
-                    portrait_buffer = None
-                else:
-                    portrait_buffer = {'tags': tags, 'index': i}
-            
-            for tag in tags:
-                if tag not in tag_frameglasses:
-                    tag_frameglasses[tag] = []
-                tag_frameglasses[tag].append(i)
-        
-        if portrait_buffer:
-            frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index']], 'tags': list(portrait_buffer['tags'])})
-
-    # if not is_binary:
-    #     frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
-        # frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
-    return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
-
-# def process_paintings(file_path):
+# def process_paintings(file_path, is_binary=False):
 #     # a dictionary that stores the set of tags for each index of landscpe paintings
 #     landscape_tags = {}
 #     # a dictionary that stores the set of tags for each index of portrait paintings
@@ -61,6 +18,7 @@ def process_paintings(file_path, is_binary=False):
 #         n = int(next(file).strip())
         
 #         frameglasses = []
+#         portrait_buffer = None
         
 #         for i in range(n):
 #             line = next(file).strip().split()
@@ -72,43 +30,98 @@ def process_paintings(file_path, is_binary=False):
 #                 frameglasses.append({'type': 'L', 'paintings': [i], 'tags': list(tags)})
 #             elif painting_type == 'P':
 #                 portrait_tags[i] = tags
-#                 # frameglasses.append({'type': 'P', 'paintings': [i], 'tags': list(tags)})
+#                 if portrait_buffer:
+#                     combined_tags = portrait_buffer['tags'].union(tags)
+#                     frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index'], i], 'tags': list(combined_tags)})
+#                     portrait_buffer = None
+#                 else:
+#                     portrait_buffer = {'tags': tags, 'index': i}
             
 #             for tag in tags:
 #                 if tag not in tag_frameglasses:
 #                     tag_frameglasses[tag] = []
 #                 tag_frameglasses[tag].append(i)
         
-#         merged_portraits = merge_portraits(portrait_tags)
-#         frameglasses.extend(merged_portraits)
+#         if portrait_buffer:
+#             frameglasses.append({'type': 'P', 'paintings': [portrait_buffer['index']], 'tags': list(portrait_buffer['tags'])})
 
-#     # frameglasses = merge_portraits(frameglasses)
-#     frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+#     # if not is_binary:
+#     #     frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+#         # frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
 #     return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
 
-def merge_portraits(portrait_tags):
-    portrait_tags = dict(sorted(portrait_tags.items(), key=lambda x: len(x[1]), reverse=True))
-    merged_portraits = []
-    # we want to pair each portrait with the one that has the least common tags
-    for i, portrait in enumerate(portrait_tags):
-        min_common_tags = float('inf')
-        min_common_portrait = None
-        for j, other_portrait in enumerate(portrait_tags):
-            if i != j:
-                common_tags = len(portrait_tags[portrait].intersection(portrait_tags[other_portrait]))
-                if common_tags < min_common_tags:
-                    min_common_tags = common_tags
-                    min_common_portrait = other_portrait
+def process_paintings(file_path):
+    # a dictionary that stores the set of tags for each index of landscpe paintings
+    landscape_tags = {}
+    # a dictionary that stores the set of tags for each index of portrait paintings
+    portrait_tags = {}
+    # a dictionary that stores the set of frameglasses that contain a particular tag
+    tag_frameglasses = {}
+    with open(file_path, 'r') as file:
+        n = int(next(file).strip())
         
-        tags = portrait_tags[portrait].union(portrait_tags[min_common_portrait])
-        merged_portraits.append({
-            'type': 'P',
-            'paintings': [portrait, min_common_portrait],
-            'tags': list(tags)
-        })
+        frameglasses = []
+        
+        for i in range(n):
+            line = next(file).strip().split()
+            painting_type = line[0]
+            tags = set(line[2:int(line[1])+2])
+            
+            if painting_type == 'L':
+                landscape_tags[i] = tags
+                frameglasses.append({'type': 'L', 'paintings': [i], 'tags': list(tags)})
+            elif painting_type == 'P':
+                portrait_tags[i] = tags
+                # frameglasses.append({'type': 'P', 'paintings': [i], 'tags': list(tags)})
+            
+            for tag in tags:
+                if tag not in tag_frameglasses:
+                    tag_frameglasses[tag] = []
+                tag_frameglasses[tag].append(i)
+        
+        merged_portraits = merge_portraits(portrait_tags, 2000)
+        frameglasses.extend(merged_portraits)
+
+    # frameglasses = merge_portraits(frameglasses)
+    frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+    return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
+
+def merge_portraits(portrait_tags, batch_size=800):
+    portrait_tags = dict(sorted(portrait_tags.items(), key=lambda x: len(x[1]), reverse=True))
+    portrait_indexes = list(portrait_tags.keys())
+    merged_portraits = []
+    
+    for i in range(0, len(portrait_indexes), batch_size):
+        batch = portrait_indexes[i:i+batch_size]
+        used = set()
+
+        for i, first in enumerate(batch):
+            if first in used:
+                continue
+            best_pair = None
+            best_common_tags = float('inf')
+            used.add(first)
+            
+            for j, second in enumerate(batch):
+                if second in used:
+                    continue
+                common_tags = len(portrait_tags[first].intersection(portrait_tags[second]))
+                if common_tags < best_common_tags:
+                    best_pair = second
+                    best_common_tags = common_tags
+
+            if best_pair:
+                merged_tags = list(portrait_tags[first].union(portrait_tags[best_pair]))
+                merged_portraits.append({
+                    'type': 'P',
+                    'paintings': [first, best_pair],
+                    'tags': merged_tags
+                })
+                used.add(best_pair)
+
+
 
     return merged_portraits
-
 
 def get_freq_of_tags_with_index_of_frameglass(frameglass_combos):
     tags_fg = {}
@@ -301,67 +314,12 @@ def run_genetic_algorithm(toolbox, threshold=0.01, ngen=20, patience=5):
 #     toolbox = setup_toolbox()
 #     optimal_batch_size = run_genetic_algorithm(toolbox, threshold=0.01, patience=10)
 #     print("Optimal Batch Size Found:", optimal_batch_size)
-
-def compute_intersection_size(i, j, portrait_tags):
-    return len(portrait_tags[i].intersection(portrait_tags[j]))
-    
-def hungarian_algorithm(portait_tags):
-    keys = list(portait_tags.keys())
-    n = len(keys)
-    matrix = np.full((n, n), 0)
-    for i, j in product(range(n), repeat=2):
-        if i != j:
-            matrix[i, j] = compute_intersection_size(keys[i], keys[j], portait_tags)
-            matrix[j, i] = matrix[i, j]
-
-    row_ind, col_ind = linear_sum_assignment(-matrix)
-    
-    return [(keys[i], keys[j]) for i, j in zip(row_ind, col_ind)]
-
-def remove_duplicates(pairs):
-    paired_portraits = set()
-    unique_pairs = []
-    for pair in pairs:
-        if pair[0] not in paired_portraits and pair[1] not in paired_portraits:
-            unique_pairs.append(pair)
-            paired_portraits.add(pair[0])
-            paired_portraits.add(pair[1])
-
-    return unique_pairs
-
-def pair_portraits_by_batch_size(start, end, portrait_tags):
-    sorted_portrait_tags = dict(sorted(portrait_tags.items(), key=lambda x: len(x[1]), reverse=True)[start:end])
-    pairs = hungarian_algorithm(sorted_portrait_tags)
-    pairs = remove_duplicates(pairs)
-    return pairs
-
-def merge_paired_portraits(pairs, portrait_tags):
-    merged_portraits = []
-    for pair in pairs:
-        tags = portrait_tags[pair[0]].union(portrait_tags[pair[1]])
-        merged_portraits.append({
-            'type': 'P',
-            'paintings': [pair[0], pair[1]],
-            'tags': list(tags)
-        })
-
-    return merged_portraits
-
-def pair_all_portraits(portrait_tags, batch_size=100):
-    n = len(portrait_tags)
-    pairs = []
-    for i in range(0, n, batch_size):
-        pair = pair_portraits_by_batch_size(i, min(i+batch_size, n), portrait_tags)
-        pairs.extend(pair)
-
-    return pairs
-
     
 def main(input_file_path, is_binary=False):
 
     start = time.time()
     input_file_path = 'Data/' + input_file_path
-    paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path, is_binary)
+    paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path)
 
     if is_binary:
         max_satisfaction, max_satisfaction_combo = best_combo_binary(paintings, tag_frameglasses)
@@ -373,15 +331,19 @@ def main(input_file_path, is_binary=False):
 
         return max_satisfaction
     
-    max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 275)
-    max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 600)
-    max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1000)
+    # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 1000)
+    # print("First batch done:", max_satisfaction)
+    # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1200)
+
+    max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 600)
+    print("First batch done:", max_satisfaction)
+    max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1500)
 
     output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
     write_output_file(output_file_path, max_satisfaction_combo)
 
-    # print("Time taken:", (time.time() - start) / 60)
+    print("Time taken:", (time.time() - start) / 60)
 
     return max_satisfaction
 
-print(main('1_binary_landscapes.txt', is_binary=True))
+print(main('11_randomizing_paintings.txt'))
