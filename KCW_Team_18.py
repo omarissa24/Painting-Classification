@@ -76,8 +76,6 @@ def merge_portraits(portrait_tags, batch_size=800):
                 })
                 used.add(best_pair)
 
-
-
     return merged_portraits
 
 def get_local_robotic_satisfaction(frameglass1, frameglass2):
@@ -272,13 +270,13 @@ def main(input_file_path, is_binary=False, is_oily=False, is_random=False, is_co
     if is_oily:
         # oily combo
         max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 1000)
-        print("First batch done:", max_satisfaction)
+        # print("First batch done:", max_satisfaction)
         max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1200)
 
     if is_random:
         # randomizing combo
         max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 600)
-        print("First batch done:", max_satisfaction)
+        # print("First batch done:", max_satisfaction)
         max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1500)
 
     # output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
@@ -286,4 +284,4 @@ def main(input_file_path, is_binary=False, is_oily=False, is_random=False, is_co
 
     return max_satisfaction
 
-print(main('1_binary_landscapes.txt', is_binary=True))
+# print(main('1_binary_landscapes.txt', is_binary=True))
