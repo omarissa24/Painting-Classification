@@ -37,7 +37,9 @@ def process_paintings(file_path, is_binary=False):
         
         merged_portraits = merge_portraits(portrait_tags, 2000)
         frameglasses.extend(merged_portraits)
-
+        if is_binary:
+            return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
+        
         frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
     return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
 
@@ -232,7 +234,7 @@ def run_genetic_algorithm(toolbox, threshold=0.01, ngen=20, patience=5):
 def main(input_file_path, is_binary=False, is_oily=False, is_random=False, is_computable=False, is_example=False):
 
     input_file_path = 'Data/' + input_file_path
-    paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path)
+    paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path, is_binary=is_binary)
 
     max_satisfaction = 0
     max_satisfaction_combo = []
@@ -259,7 +261,7 @@ def main(input_file_path, is_binary=False, is_oily=False, is_random=False, is_co
 
     if is_random:
         # randomizing combo
-        max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 1000)
+        max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 600)
         print("First batch done:", max_satisfaction)
         max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1500)
 
@@ -268,4 +270,4 @@ def main(input_file_path, is_binary=False, is_oily=False, is_random=False, is_co
 
     return max_satisfaction
 
-print(main('110_oily_portraits.txt', is_oily=True))
+print(main('1_binary_landscapes.txt', is_binary=True))
