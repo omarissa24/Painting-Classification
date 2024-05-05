@@ -78,37 +78,12 @@ def process_paintings(file_path, is_binary=False):
 #                     tag_frameglasses[tag] = []
 #                 tag_frameglasses[tag].append(i)
         
-#         pairs = pair_all_portraits(portrait_tags, 5000)
-#         merged_portraits = merge_paired_portraits(pairs, portrait_tags)
+#         merged_portraits = merge_portraits(portrait_tags)
 #         frameglasses.extend(merged_portraits)
 
 #     # frameglasses = merge_portraits(frameglasses)
 #     frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
 #     return frameglasses, landscape_tags, portrait_tags, tag_frameglasses
-
-def merge_portraits(frameglasses):
-    start = 0
-    end = len(frameglasses) - 1
-    while start < end:
-        if frameglasses[start]['type'] == 'P' and frameglasses[end]['type'] == 'P':
-            combined_tags = set(frameglasses[start]['tags']) | set(frameglasses[end]['tags'])
-            frameglasses[start] = {
-                'type': 'P',
-                'paintings': [frameglasses[start]['paintings'][0], frameglasses[end]['paintings'][0]],
-                'tags': list(combined_tags)
-            }
-            frameglasses.pop(end)
-            start += 1
-            end -= 1
-        elif frameglasses[start]['type'] == 'P':
-            end -= 1
-        elif frameglasses[end]['type'] == 'P':
-            start += 1
-        else:
-            start += 1
-            end -= 1
-
-    return frameglasses
 
 def get_freq_of_tags_with_index_of_frameglass(frameglass_combos):
     tags_fg = {}
@@ -346,32 +321,31 @@ def pair_all_portraits(portrait_tags, batch_size=100):
     return pairs
 
     
-def main(input_file_path):
+def main(input_file_path, is_binary=False):
 
-    paintings = process_paintings(input_file_path)
+    start = time.time()
+    input_file_path = 'Data/' + input_file_path
+    paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path, is_binary)
+
+    if is_binary:
+        max_satisfaction, max_satisfaction_combo = get_best_combo_binary(paintings, tag_frameglasses)
+
+        output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
+        write_output_file(output_file_path, max_satisfaction_combo)
+
+        # print("Time taken:", (time.time() - start) / 60)
+
+        return max_satisfaction
+    
     max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 275)
     max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 600)
     max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1000)
-    print(max_satisfaction)
-    output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
 
+    output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
     write_output_file(output_file_path, max_satisfaction_combo)
+
+    # print("Time taken:", (time.time() - start) / 60)
 
     return max_satisfaction
 
-# --------------------------------------------
-
-if __name__ == '__main__':
-    start = time.time()
-    input_file_path = '1_binary_landscapes.txt'
-    paintings, landscape_tags, portrait_tags, tag_frameglasses = process_paintings(input_file_path, True)
-    # print(get_freq_of_tags_with_index_of_frameglass(paintings)) 
-    max_satisfaction, best_combo = get_best_combo_binary(paintings, tag_frameglasses)
-    # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(paintings, 275)
-    # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 600)
-    # max_satisfaction, max_satisfaction_combo = get_max_satisfaction_batch(max_satisfaction_combo, 1000)
-    print(max_satisfaction)
-    # output_file_path = str(max_satisfaction) + '-' + input_file_path.split('/')[-1].replace('.txt', '_output.txt')
-
-    # write_output_file(output_file_path, max_satisfaction_combo)
-    print((time.time() - start) / 60)
+print(main('1_binary_landscapes.txt', is_binary=True))
