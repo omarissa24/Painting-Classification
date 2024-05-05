@@ -1,3 +1,13 @@
+"""
+KCW Team 18
+
+Omar Issa
+Akram Yamak
+Samih Mackieh
+Chris Karam
+Brial Alalam
+
+"""
 import time
 import random
 from deap import base, creator, tools, algorithms

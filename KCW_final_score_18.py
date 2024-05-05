@@ -1,3 +1,14 @@
+"""
+KCW Team 18
+
+Omar Issa
+Akram Yamak
+Samih Mackieh
+Chris Karam
+Brial Alalam
+
+"""
+
 import time
 from KCW_Team_18 import main
 
