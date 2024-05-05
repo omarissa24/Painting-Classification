@@ -142,7 +142,7 @@ def best_combo_binary(frameglasses, tag_frameglasses):
             if neighbor not in visited:
                 nb_common_tags = len(set(curr['tags']).intersection(set(fg_copy[neighbor]['tags'])))
                 nb_tags = len(fg_copy[neighbor]['tags'])
-                if nb_tags > 2 * nb_common_tags:
+                if nb_tags >= 2 * nb_common_tags:
                     best_combo.append(fg_copy[neighbor])
                     visited.add(neighbor)
                     frameglasses.remove(fg_copy[neighbor])
