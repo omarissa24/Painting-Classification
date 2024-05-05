@@ -124,7 +124,8 @@ def get_max_satisfaction_batch(frameglass_combos, chunk_size=100):
 def best_combo_binary(frameglasses, tag_frameglasses):
     best_combo = []
     fg_copy = frameglasses.copy()
-    frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+    # frameglasses.sort(key=lambda x: len(x['tags']), reverse=True)
+    frameglasses = sort_frameblasses_by_frequency(frameglasses)
     max_satisfaction = 0
     visited = set()
     best_combo.append(frameglasses[0])
@@ -148,9 +149,9 @@ def best_combo_binary(frameglasses, tag_frameglasses):
                     break
 
         if not neighbors:
-            best_combo.append(frameglasses[-1])
-            visited.add(frameglasses[-1]['paintings'][0])
-            frameglasses.pop(-1)
+            best_combo.append(frameglasses[0])
+            visited.add(frameglasses[0]['paintings'][0])
+            frameglasses.pop(0)
             curr = best_combo[-1]
 
     
@@ -158,8 +159,23 @@ def best_combo_binary(frameglasses, tag_frameglasses):
         max_satisfaction += get_local_robotic_satisfaction(best_combo[i], best_combo[i+1])
 
     return max_satisfaction, best_combo
-            
-            
+
+# sort by frequency of number of tags
+def sort_frameblasses_by_frequency(frameglasses):
+    frequency = {}
+    for frameglass in frameglasses:
+        num_tags = len(frameglass['tags'])
+        if num_tags not in frequency:
+            frequency[num_tags] = []
+        frequency[num_tags].append(frameglass)
+    
+    sorted_frameglasses = []
+    for num_tags in sorted(frequency.keys(), reverse=True):
+        sorted_frameglasses.extend(frequency[num_tags])
+
+    sorted_frameglasses.reverse()
+    
+    return sorted_frameglasses
 
 def write_output_file(output_file_path, best_combo):
     with open(output_file_path, 'w') as file:
