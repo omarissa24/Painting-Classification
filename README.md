@@ -1,4 +1,4 @@
-# Optimized Exhibition Opening - Team 961s
+# Optimized Exhibition Opening
 
 ## Project Overview
 This project focuses on processing and categorizing paintings into landscape and portrait types, generating frameglasses based on painting tags, and merging portraits using a set of defined criteria to maximize local score. 
